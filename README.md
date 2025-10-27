@@ -134,8 +134,13 @@ ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=SPFILE;
 ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=BOTH;
 ```
 
+## 4. Reiniciar la base de datos (opcional)
+```
+SHUTDOWN IMMEDIATE;
+STARTUP;
+```
 
-## 4. Verificar que todo está configurado
+## 5. Verificar que todo está configurado
   - Ver ACL
 ```
 SELECT * FROM dba_network_acls;
@@ -155,7 +160,7 @@ SELECT name, value FROM v$parameter WHERE name LIKE 'smtp%';
 SELECT UTL_INADDR.get_host_address('smtp.gmail.com') FROM DUAL;
 ```
 
-## 5. Probar conexión básica
+## 6. Probar conexión básica
 ```
 DECLARE
     v_conn UTL_SMTP.connection;
