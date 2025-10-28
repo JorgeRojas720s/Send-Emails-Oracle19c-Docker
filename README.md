@@ -11,9 +11,9 @@ mkdir C:\oracle\wallets\Example
 
 ### 🐳 2️⃣ Crear el contenedor Oracle 19c con volumen
 ```
-docker run -d --name oracle19c ^
--p 1521:1521 -p 5500:5500 ^
--v C:\oracle\wallets\Example:/opt/oracle/smtp_wallet ^
+docker run -d --name oracle19c \
+-p 1521:1521 -p 5500:5500 \
+-v C:\oracle\wallets\Example:/opt/oracle/smtp_wallet \
 oracle/database:19.3.0-ee
 ```
 ✅ Así, /opt/oracle/smtp_wallet dentro del contenedor quedará sincronizada con C:\oracle\wallets\Example en tu PC.
