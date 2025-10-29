@@ -3,7 +3,9 @@
 Este repositorio contiene una guía paso a paso para enviar correos electrónicos utilizando Oracle 19c ejecutado en un contenedor Docker, configurando Wallet, certificados, ACLs y paquetes UTL_MAIL/UTL_SMTP para permitir conexión segura (TLS/SSL) hacia servidores SMTP como Gmail.
 
 
-## I PARTE: Crearcion del contenedor y BD
+
+
+## 🐳 Parte I: Creación del Contenedor y Base de Datos
  -  Si no quieres un volumen para los certificados, solo no lo colocas y omites el paso 1
  -  Si ya tienes un contenedor pasar la parte II
 
@@ -37,9 +39,10 @@ oracle/database:19.3.0-ee
   -createAsContainerDatabase false
 ```
 
----
-## II Parte: Instalación de certificados
----
+
+
+
+## 📜 Parte II: Instalación de Certificados
 
 ### 1️⃣ Crear el directorio dentro del contenedor
 ```
@@ -60,8 +63,6 @@ curl -o we2.crt https://pki.goog/repo/certs/gts1c3.pem
 echo | openssl s_client -connect smtp.gmail.com:465 -showcerts 2>/dev/null | \
 sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > smtp_gmail.crt
 ```
-
-
 
 ### 3️⃣ Crear el Wallet con auto-login (Coloca la contraseña que quieres)
 ```
@@ -94,10 +95,14 @@ CN=GTS Root R4,O=Google Trust Services LLC,C=US
 ```
 
 
-## III PARTE: Configuracion del ACL (Access Control List) y parámetros SMTP
 
 
-## 1️⃣ Crear el ACL con SYS
+
+
+
+## 🔐 Parte III: Configuración ACL y Parámetros SMTP
+
+### 1️⃣ Crear el ACL con SYS
 ```
 BEGIN
     DBMS_NETWORK_ACL_ADMIN.CREATE_ACL(
@@ -125,7 +130,7 @@ END;
 ```
 
 
-## 2️⃣ Verificar ACL creada
+### 2️⃣ Verificar ACL creada
 ```
 SELECT acl, principal, privilege, is_grant 
 FROM dba_network_acl_privileges 
@@ -133,14 +138,14 @@ WHERE acl LIKE '%smtp_gmail%';
 ```
 
 
-## 3️⃣ Configurar parámetros SMTP
+### 3️⃣ Configurar parámetros SMTP
 ```
 ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=SPFILE;
 -- Alternativa si VALUE es NULL
 ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=BOTH;
 ```
 
-## 4️⃣ Verificar que todo está configurado
+### 4️⃣ Verificar que todo está configurado
   - Ver ACL
 ```
 SELECT * FROM dba_network_acls;
@@ -160,7 +165,7 @@ SELECT name, value FROM v$parameter WHERE name LIKE 'smtp%';
 SELECT UTL_INADDR.get_host_address('smtp.gmail.com') FROM DUAL;
 ```
 
-## 5️⃣ Probar conexión básica
+### 5️⃣ Probar conexión básica
 ```
 DECLARE
     v_conn UTL_SMTP.connection;
@@ -174,29 +179,39 @@ EXCEPTION
 END;
 ```
 
-## IV PARTE: Obten tu app password, de tu cueta de Google
 
-## 1️⃣ Coloca esta ruta en el navegador
 
+
+## 🔑 Parte IV: Configuración de Gmail App Password
+
+### 1️⃣ Ir a Configuración de Seguridad de Google
 ```
 https://myaccount.google.com/security
 ```
 
-## 2️⃣ Ingresas aqui
-<img width="512" height="95" alt="image" src="https://github.com/user-attachments/assets/d30b5464-56f8-4cb4-af05-373f3bcfba78" />
+### 2️⃣ Ingresas aqui
+<img width="525" height="98" alt="image" src="https://github.com/user-attachments/assets/b6ef2961-9bb5-42be-b4f3-c91ed8c9401f" />
 
-## 3️⃣ Tienes que tener la verificacion en dos pasos activa
+### 3️⃣ Verificar que tengas la verificación en 2 pasos activada
 
-## 4️⃣ En la parte inferior de la pagina das clic aqui
+### 4️⃣ En la parte inferior de la pagina das clic aqui
 <img width="524" height="118" alt="image" src="https://github.com/user-attachments/assets/cca251c0-0d5d-408a-951f-1fbc9783bea0" />
 
-## 5️⃣ Le colocas un nombre y le das a crear
+### 5️⃣ Le colocas un nombre y le das a crear
 <img width="406" height="244" alt="image" src="https://github.com/user-attachments/assets/f352116b-ea00-49db-8c34-f3314c365c10" />
 
-## 6️⃣ Por ultimo, copias la contraseña y esa sera tu app password
+### 6️⃣ Por ultimo, copias la contraseña y esa sera tu app password
+ - La contraseña tendrá formato: xxxx xxxx xxxx xxxx
+ - Guárdala en un lugar seguro, no podrás verla nuevamente
 
 
-## V PARTE: Crea el procedimiento
+
+
+
+
+## 💻 Parte V: Implementación del Procedimiento
+
+### 📧 Crear Procedimiento para Envío de Emails
 ```
 CREATE OR REPLACE PROCEDURE send_email(
     p_recipient IN VARCHAR2,
@@ -280,8 +295,8 @@ EXCEPTION
 END send_email;
 ```
 
+### 🧪 Probar el Envío de Email
 ```
---! Probar el envío
 BEGIN
     send_email(
         p_recipient => 'correoDestino@gmail.com', 
