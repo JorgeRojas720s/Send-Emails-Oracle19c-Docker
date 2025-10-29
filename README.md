@@ -9,12 +9,12 @@ Este repositorio contiene una guía paso a paso para enviar correos electrónico
  -  Si no quieres un volumen para los certificados, solo no lo colocas y omites el paso 1
  -  Si ya tienes un contenedor pasar la parte II
 
-### 📂 1️⃣ Crear carpeta local para montar el Wallet
+### 1️⃣ Crear carpeta local para montar el Wallet
 ```
 mkdir C:\oracle\wallets\Example
 ```
 
-### 🐳 2️⃣ Crear el contenedor Oracle 19c con volumen
+### 2️⃣ Crear el contenedor Oracle 19c con volumen
 ```
 docker run -d --name oracle19c \
 -p 1521:1521 -p 5500:5500 \
@@ -25,7 +25,7 @@ oracle/database:19.3.0-ee
 
 
 
-### 🗄️ 3️⃣ Crear la base de datos desde bash del contenedor
+### 3️⃣ Crear la base de datos desde bash del contenedor
 ```
  dbca -silent -createDatabase \
   -templateName General_Purpose.dbc \
