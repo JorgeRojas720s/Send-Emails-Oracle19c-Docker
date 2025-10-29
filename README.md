@@ -34,62 +34,67 @@ oracle/database:19.3.0-ee
   -createAsContainerDatabase false
 ```
 
-
-### 🔐 4️⃣ Crear la wallet dentro del contenedor
-```
-orapki wallet create -wallet /home/oracle/smtp_wallet -pwd Example123 -auto_login
-mkdir -p /tmp/certs
-cd /tmp/certs
-````
-
-### 📥 5️⃣  Descargar la cadena de certificados de Gmail (smtp.gmail.com) usando OpenSSL
-```
-echo -n | openssl s_client -connect smtp.gmail.com:587 -starttls smtp -showcerts 2>/dev/null \
-| sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > gmail_chain.pem
-```
-
-### 4️⃣ Separar la cadena en certificados individuales
-```
-csplit -f cert- gmail_chain.pem '/-----BEGIN CERTIFICATE-----/' '{*}'
-```
-
-### 7️⃣ Obtener el certificado principal del servidor smtp.gmail.com
-```
-echo -n | openssl s_client -connect smtp.gmail.com:587 -starttls smtp 2>/dev/null \
-| openssl x509 > /tmp/gmail_cert.pem
-```
-
-
-### 8️⃣ Agregar los certificados al wallet
-```
-orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert \
--cert /tmp/gmail_cert.pem -pwd Example123
-
-orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert \
--cert /tmp/certs/cert-02 -pwd Example123
-
-orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert \
--cert /tmp/certs/cert-03 -pwd Example123
-
-```
-
-### 9️⃣ Verificar que el wallet contiene los tres certificados correctos
-```
-orapki wallet display -wallet /home/oracle/smtp_wallet -pwd Example123
-```
-Deberías ver algo como::
-```
-CN=smtp.gmail.com
-CN=GTS Root R4,O=Google Trust Services LLC,C=US
-CN=WE2,O=Google Trust Services,C=US
-```
-
+---
+## Si ya tienes un contenedor sin volumen, inicia aquí ✅
 ---
 
-## II PARTE: Configuracion del ACL (Access Control List)
+### 1️⃣ Crear el directorio dentro del contenedor
+```
+mkdir -p /home/oracle/smtp_wallet
+cd /home/oracle/smtp_wallet
+````
+
+### 2️⃣ Descargar los certificados
+```
+curl -o gtsr4.crt https://pki.goog/repo/certs/gtsr4.pem
+```
+
+```
+curl -o we2.crt https://pki.goog/repo/certs/gts1c3.pem
+```
+
+```
+echo | openssl s_client -connect smtp.gmail.com:465 -showcerts 2>/dev/null | \
+sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > smtp_gmail.crt
+```
 
 
-## 1. Crear el ACL con SYS
+
+### 3️⃣ Crear el Wallet con auto-login (Coloca la contraseña que quieres)
+```
+orapki wallet create -wallet /home/oracle/smtp_wallet -pwd TuPassword123 -auto_login
+```
+
+### 4️⃣ Agregar los certificados al Wallet
+```
+orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert -cert gtsr4.crt -pwd TuPassword123
+```
+
+```
+orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert -cert we2.crt -pwd TuPassword123
+```
+
+```
+orapki wallet add -wallet /home/oracle/smtp_wallet -trusted_cert -cert smtp_gmail.crt -pwd TuPassword123
+```
+
+### Verificar que el wallet contiene los tres certificados correctos
+```
+orapki wallet display -wallet /home/oracle/smtp_wallet
+```
+
+Deberías ver algo como:
+```
+CN=smtp.gmail.com
+CN=GTS CA 1C3,O=Google Trust Services LLC,C=US
+CN=GTS Root R4,O=Google Trust Services LLC,C=US
+```
+
+
+## II PARTE: Configuracion del ACL (Access Control List) y parámetros SMTP
+
+
+## 1️⃣ Crear el ACL con SYS
 ```
 BEGIN
     DBMS_NETWORK_ACL_ADMIN.CREATE_ACL(
@@ -117,7 +122,7 @@ END;
 ```
 
 
-## 2. Verificar que se creó correctamente
+## 2️⃣ Verificar ACL creada
 ```
 SELECT acl, principal, privilege, is_grant 
 FROM dba_network_acl_privileges 
@@ -125,22 +130,14 @@ WHERE acl LIKE '%smtp_gmail%';
 ```
 
 
-## 3. Configurar parámetros SMTP
+## 3️⃣ Configurar parámetros SMTP
 ```
 ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=SPFILE;
-
--- Si VALUE es null, probar este comando alternativo:
-
+-- Alternativa si VALUE es NULL
 ALTER SYSTEM SET smtp_out_server = 'smtp.gmail.com:587' SCOPE=BOTH;
 ```
 
-## 4. Reiniciar la base de datos (opcional)
-```
-SHUTDOWN IMMEDIATE;
-STARTUP;
-```
-
-## 5. Verificar que todo está configurado
+## 4️⃣ Verificar que todo está configurado
   - Ver ACL
 ```
 SELECT * FROM dba_network_acls;
@@ -160,7 +157,7 @@ SELECT name, value FROM v$parameter WHERE name LIKE 'smtp%';
 SELECT UTL_INADDR.get_host_address('smtp.gmail.com') FROM DUAL;
 ```
 
-## 6. Probar conexión básica
+## 5️⃣ Probar conexión básica
 ```
 DECLARE
     v_conn UTL_SMTP.connection;
